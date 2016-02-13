@@ -1,44 +1,56 @@
 #include <Encoder.h>
 #include <Adafruit_NeoPixel.h>
 
+// Pin for the Neopixel strip connction
 #define NEOPIXEL_PIN 6
+// Pin for the encoder's push button switch
 #define PIN_ENCODER_SWITCH 4
 
+// Initialize the encoder connected to these two pins
 Encoder myEnc(2, 3);
 int stripStatus = 0;
 long oldPosition  = -999;
 int pos = 30;
 
+// Initialize the Neopixels
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(60, NEOPIXEL_PIN, NEO_WGRB + NEO_KHZ800);
 
 void setup() {
   Serial.begin(9600);
 
+  // Initialize all pixels to 'off'
   strip.begin();
-  allOff(); // Initialize all pixels to 'off'
+  allOff(); 
 
   pinMode(PIN_ENCODER_SWITCH, INPUT_PULLUP);
 }
 
 void loop() {
 
+  // checks for a new position of the rotary encoder
   long newPosition = myEnc.read();
 
-  if (stripStatus == 1) {
+  // do an action based on the current system status
+  // 0 = off
+  // 1 = on
+  // 2 = spotlight
+  // 3 = dance party
+  
+  if (stripStatus == 1) { // on adjusts brightness
     if (newPosition != oldPosition) {
       int diff = newPosition - oldPosition;
       if (diff > 0) {
-        brightAll(diff);
+        brightAll(diff); // brighten all the lights
       } 
       if (diff < 0) {
-        dimAll(diff);
+        dimAll(diff); // dim all the lights
       }
       oldPosition = newPosition;
       Serial.println(newPosition);
     }
   }
 
-  if (stripStatus == 2) {
+  if (stripStatus == 2) { // spotlight adjusts position
     if (newPosition != oldPosition) {
       int diff = newPosition - oldPosition;
       pos += diff;
@@ -48,12 +60,13 @@ void loop() {
       if (pos < 0) {
         pos = 0;
       }
-      spotLightShift(pos);
+      spotLightShift(pos); // change the position of the spotlight
       oldPosition = newPosition;
       Serial.println(newPosition);      
     }
   }
 
+  // checks for pressing of switch and changes mode
   int val = digitalRead(PIN_ENCODER_SWITCH);
   if (val == 0) {
     if (stripStatus < 3) {
@@ -81,13 +94,14 @@ void loop() {
     delay(500);
   }
 
+  // repeats this as long as it's in mode 3 dance party
   if (stripStatus == 3) {
     danceParty();
   }
   
 }
 
-void spotLightShift(int pos) {
+void spotLightShift(int pos) { // shifts the position of the spotlight
   int pixels = strip.numPixels();
   for (int i = 0; i < pixels; i++) {
     if (i < pos - 8) {
@@ -103,7 +117,7 @@ void spotLightShift(int pos) {
   strip.show();
 }
 
-void spotLightInit() {
+void spotLightInit() { // initializes the spotlight
   int pixels = strip.numPixels();
   for (int i = 0; i < pixels; i++) {
     if (i < (pixels / 2) - 8) {
@@ -120,7 +134,7 @@ void spotLightInit() {
   strip.show();
 }
 
-void danceParty() {
+void danceParty() { // whomp whomp whomp
   // Send a theater pixel chase in...
   theaterChase(strip.Color(127, 127, 127), 50); // White
   theaterChase(strip.Color(127, 0, 0), 50); // Red
@@ -128,7 +142,7 @@ void danceParty() {
   theaterChase(strip.Color(0, 0, 127), 50); // Blue
 }
 
-void dimAll(int diff) {
+void dimAll(int diff) { // dims all the lights
   int brightness = strip.getBrightness();
   if (brightness > 1) {
     brightness += diff;
@@ -140,7 +154,7 @@ void dimAll(int diff) {
   }
 }
 
-void brightAll(int diff) {
+void brightAll(int diff) { // brightens all the lights
   int brightness = strip.getBrightness();
   if (brightness < 256) {
     brightness += diff;
@@ -153,7 +167,7 @@ void brightAll(int diff) {
 
 }
 
-void allOff() {
+void allOff() { // turns off all the lights
   for (int i=0; i < strip.numPixels(); i++) {
     strip.setPixelColor(i, 0);        //turn every pixel off
   }
@@ -161,18 +175,12 @@ void allOff() {
   strip.show();
 }
 
-void allOn() {
+void allOn() { // turns on all the lights
   for (int i=0; i < strip.numPixels(); i++) {
     strip.setPixelColor(i, 255);        //turn every pixel on
   }
 
   strip.show();
-}
-
-void showoff() {
-  colorWipe(strip.Color(255, 0, 0), 25);
-  colorWipe(strip.Color(0, 255, 0), 25);
-  colorWipe(strip.Color(0, 0, 255), 25);
 }
 
 // Fill the dots one after the other with a color
