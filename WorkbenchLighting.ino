@@ -11,12 +11,16 @@ Encoder myEnc(2, 3);
 int stripStatus = 0;
 long oldPosition  = -999;
 int pos = 30;
+int danceBeats = 50;
 
 // Initialize the Neopixels
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(60, NEOPIXEL_PIN, NEO_WGRB + NEO_KHZ800);
 
 void setup() {
   Serial.begin(9600);
+
+  // Seed random number generator
+  randomSeed(analogRead(0));
 
   // Initialize all pixels to 'off'
   strip.begin();
@@ -66,6 +70,22 @@ void loop() {
     }
   }
 
+  if (stripStatus == 3) { // spotlight adjusts position
+    if (newPosition != oldPosition) {
+      int diff = newPosition - oldPosition;
+      pos += diff * 100;
+      if (danceBeats > 500) {
+        danceBeats = 500;
+      }
+      if (danceBeats < 30) {
+        danceBeats = 30;
+      }
+      
+      oldPosition = newPosition;
+      Serial.println(newPosition);      
+    }
+  }
+
   // checks for pressing of switch and changes mode
   int val = digitalRead(PIN_ENCODER_SWITCH);
   if (val == 0) {
@@ -96,7 +116,7 @@ void loop() {
 
   // repeats this as long as it's in mode 3 dance party
   if (stripStatus == 3) {
-    danceParty();
+    danceParty(danceBeats);
   }
   
 }
@@ -134,12 +154,27 @@ void spotLightInit() { // initializes the spotlight
   strip.show();
 }
 
-void danceParty() { // whomp whomp whomp
+void danceParty(int beats) { // whomp whomp whomp
   // Send a theater pixel chase in...
-  theaterChase(strip.Color(127, 127, 127), 50); // White
-  theaterChase(strip.Color(127, 0, 0), 50); // Red
-  theaterChase(strip.Color(0, 127, 0), 50); // Green
-  theaterChase(strip.Color(0, 0, 127), 50); // Blue
+  long randNumber;
+
+  randNumber = random(1, 4);
+  switch (randNumber) {
+    case 1:
+      theaterChase(strip.Color(127, 127, 127), beats); // White
+      break;
+    case 2:
+      theaterChase(strip.Color(127, 0, 0), beats); // Red
+      break;
+    case 3:
+      theaterChase(strip.Color(0, 127, 0), beats); // Green
+    case 4:
+      theaterChase(strip.Color(0, 0, 127), beats); // Blue
+      break;
+    default:
+      break;
+  }
+  
 }
 
 void dimAll(int diff) { // dims all the lights
