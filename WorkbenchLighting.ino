@@ -4,12 +4,16 @@
 // Pin for the Neopixel strip connction
 #define NEOPIXEL_PIN 6
 // Pin for the encoder's push button switch
-#define PIN_ENCODER_SWITCH 4
+#define PIN_ENCODER_SWITCH 2
+
+int switchInterrupt = 0;
 
 // Initialize the encoder connected to these two pins
-Encoder myEnc(2, 3);
-int stripStatus = 0;
-long oldPosition  = -999;
+Encoder myEnc(3, 9);
+volatile int stripStatus = 0;
+volatile int debounce = 0;
+volatile long oldPosition  = -999;
+volatile long newPosition = 999;
 int pos = 30;
 int danceBeats = 50;
 
@@ -27,12 +31,13 @@ void setup() {
   allOff(); 
 
   pinMode(PIN_ENCODER_SWITCH, INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(PIN_ENCODER_SWITCH), modechange, RISING);
 }
 
 void loop() {
 
   // checks for a new position of the rotary encoder
-  long newPosition = myEnc.read();
+  newPosition = myEnc.read();
 
   // do an action based on the current system status
   // 0 = off
@@ -50,7 +55,6 @@ void loop() {
         dimAll(diff); // dim all the lights
       }
       oldPosition = newPosition;
-      Serial.println(newPosition);
     }
   }
 
@@ -65,15 +69,14 @@ void loop() {
         pos = 0;
       }
       spotLightShift(pos); // change the position of the spotlight
-      oldPosition = newPosition;
-      Serial.println(newPosition);      
+      oldPosition = newPosition;     
     }
   }
 
-  if (stripStatus == 3) { // spotlight adjusts position
+  if (stripStatus == 3) { // change the beats per minute in dance party 
     if (newPosition != oldPosition) {
       int diff = newPosition - oldPosition;
-      pos += diff * 100;
+      danceBeats += diff * 5;
       if (danceBeats > 500) {
         danceBeats = 500;
       }
@@ -81,44 +84,57 @@ void loop() {
         danceBeats = 30;
       }
       
-      oldPosition = newPosition;
-      Serial.println(newPosition);      
-    }
-  }
-
-  // checks for pressing of switch and changes mode
-  int val = digitalRead(PIN_ENCODER_SWITCH);
-  if (val == 0) {
-    if (stripStatus < 3) {
-      stripStatus++;
-    } else {
-      stripStatus = 0;
+      oldPosition = newPosition;     
     }
 
-    switch (stripStatus) {
-    case 0:
-      allOff();
-      break;
-    case 1:
-      allOn();
-      break;
-    case 2:
-      spotLightInit();
-      break; 
-    case 3:
-      break;
-    default:
-      break;
-    }
-
-    delay(500);
+    Serial.println("Beats: " + String(danceBeats));
   }
 
   // repeats this as long as it's in mode 3 dance party
   if (stripStatus == 3) {
     danceParty(danceBeats);
   }
+
   
+}
+
+void modechange() {
+
+  int rightNow = millis();
+  if (rightNow - debounce > 300) {
+
+    debounce = rightNow;
+    if (stripStatus < 3) {
+      stripStatus++;
+    } else {
+      stripStatus = 0;
+    }
+
+
+    switch (stripStatus) {
+    case 0:
+      allOff();
+      Serial.println("Turn all off");
+      break;
+    case 1:
+      allOn();
+      Serial.println("Turn all on");
+      break;
+    case 2:
+      spotLightInit();
+      Serial.println("Turn on spotlight");
+      break; 
+    case 3:
+      Serial.println("Setup dance party mode");
+      break;
+    default:
+      break;
+    }
+
+    Serial.println("Status: " + String(stripStatus));
+    
+  }
+
 }
 
 void spotLightShift(int pos) { // shifts the position of the spotlight
